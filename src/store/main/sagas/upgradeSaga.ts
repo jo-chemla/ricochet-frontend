@@ -1,4 +1,4 @@
-import { upgrade } from 'api/ethereum';
+import { upgrade, upgradeMatic } from 'api/ethereum';
 import { superTokenABI } from 'constants/abis';
 import { call, put, all } from 'redux-saga/effects';
 import { Unwrap } from 'types/unwrap';
@@ -6,6 +6,8 @@ import { getAddress } from 'utils/getAddress';
 import { getContract } from 'utils/getContract';
 import web3 from 'utils/web3instance';
 import { transformError } from 'utils/transformError';
+import { MATICxAddress } from 'constants/polygon_config';
+
 import {
   mainSetState,
   upgradeAction,
@@ -17,7 +19,7 @@ import {
   checkIfApproveWeth,
   checkIfApproveWbtc,
   checkIfApproveSushi,
-  checkIfApproveWMatic,
+  checkIfApproveMatic,
 } from './checkIfApprove';
 import { getBalances } from './getBalances';
 
@@ -31,7 +33,11 @@ export function* upgradeSaga(
     tokenAddress,
     superTokenABI,
   );
-  yield call(upgrade, contract, value, address);
+  if (tokenAddress === MATICxAddress) {
+    yield call(upgradeMatic, contract, value, address);
+  } else {
+    yield call(upgrade, contract, value, address);
+  }
   yield call(getBalances, address);
 }
 
@@ -39,9 +45,10 @@ export function* upgradeMainSaga({ payload }: ReturnType<typeof upgradeAction>) 
   try {
     yield put(mainSetState({ isLoadingUpgrade: true }));
     const {
-      superTokenAddress, value, multi,
+      superTokenAddress, value,
     } = payload;
-    const amount = web3.utils.toWei((Number(value) * multi).toString(), 'wei');
+    // Superfluid upgrade contract requires the upgrade value to be scaled by 1e18 and not decimals
+    const amount = web3.utils.toWei((Number(value) * 1e18).toString(), 'wei'); 
     yield call(upgradeSaga, superTokenAddress, amount);
     payload.callback();
     yield all([
@@ -51,7 +58,7 @@ export function* upgradeMainSaga({ payload }: ReturnType<typeof upgradeAction>) 
       call(checkIfApproveWeth),
       call(checkIfApproveWbtc),
       call(checkIfApproveSushi),
-      call(checkIfApproveWMatic),
+      call(checkIfApproveMatic),
     ]);
   } catch (e) {
     const error = transformError(e);
