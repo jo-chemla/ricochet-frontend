@@ -6,6 +6,7 @@ import { FontIcon, FontIconName } from 'components/common/FontIcon';
 import { showErrorToast } from 'components/common/Toaster';
 // import { useTranslation } from 'i18n';
 // import { generateDate } from 'utils/generateDate';
+import ReactTooltip from 'react-tooltip';
 import styles from './styles.module.scss';
 import { Coin } from '../../../constants/coins';
 import { CoinChange } from '../CoinChange';
@@ -25,6 +26,8 @@ interface IProps {
   balanceB?: string;
   totalFlow?: string;
   totalFlows?: number;
+  streamEnd?: string;
+  subsidyRate?: { perso:number, total:number };
   personalFlow?: string;
   mainLoading?: boolean;
   flowType: FlowType,
@@ -40,6 +43,8 @@ export const PanelChange: FC<IProps> = ({
   balanceB,
   totalFlow,
   totalFlows,
+  streamEnd,
+  subsidyRate,
   personalFlow,
   mainLoading = false,
   flowType,
@@ -83,6 +88,7 @@ export const PanelChange: FC<IProps> = ({
   // uncomment when need
   // const date = generateDate(balanceA, personalFlow);
 
+  const uuid = (new Date()).getTime().toString(36) + Math.random().toString(36).slice(2);
   return (
     <>
       <section className={styles.panel}>
@@ -99,15 +105,37 @@ export const PanelChange: FC<IProps> = ({
                 {`${coinA}x/mo.`}
               </div>
               <div className={styles.stream}>
-                <div className={styles.stream_values}>
-                  <span className={styles.number}>{personalFlow}</span>
-                  {`${coinA}/mo.`}
-                </div>
-                {/* <div className={styles.date}>
-                  {t('Runs out on')}
-                  :
-                  <span className={styles.number_date}>{date}</span>
-  </div> */ }
+                <span>
+                  <div className={styles.stream_values}>
+                    <span className={styles.number}>{personalFlow}</span>
+                    {`${coinA}/mo.  `}
+                    { (subsidyRate?.perso || 0) > 0 ? (
+                      <span>
+                        <span data-tip data-for={`depositTooltipPerso-${uuid}`}>🔥</span>
+                        <ReactTooltip 
+                          id={`depositTooltipPerso-${uuid}`}
+                          place="right" 
+                          effect="solid" 
+                          multiline
+                          className={styles.depositTooltip}
+                        >
+                          <span className={styles.depositTooltip_span}>
+                            {`Earning ${((subsidyRate?.perso || 0)).toFixed(2)} RIC/mo. subsidy`}
+                          </span> 
+                        </ReactTooltip>
+                      </span> 
+                    ) : <span /> }
+                  </div>
+                </span>
+                <span>
+                  {((personalFlow || 0) > 0 && (balanceA || 0) > 0) && (
+                  <div className={styles.stream_values}>
+                    {`Runs out on ${streamEnd}`}
+                  </div>
+                  )}
+                  
+                </span>
+                
               </div>
               <div className={styles.balances}>
                 <div className={styles.first_balance_container}>
@@ -126,7 +154,23 @@ export const PanelChange: FC<IProps> = ({
               <div className={styles.streaming}>
                 <span>
                   <span className={styles.number}>{totalFlow}</span>
-                  {`${coinA}x/mo.`}
+                  {`${coinA}x/mo.  `}
+                  { ((subsidyRate?.total && flowType !== 'sushiLP') || 0) > 0 ? (
+                    <span>
+                      <span data-tip data-for={`depositTooltipTotal-${uuid}`}>🔥</span>
+                      <ReactTooltip 
+                        id={`depositTooltipTotal-${uuid}`}
+                        place="right" 
+                        effect="solid" 
+                        multiline
+                        className={styles.depositTooltip}
+                      >
+                        <span className={styles.depositTooltip_span}>
+                          {`Total subsidy: ${((subsidyRate?.total || 0) / 1e3).toFixed(0)}k RIC/mo.`}
+                        </span> 
+                      </ReactTooltip>
+                    </span>
+                  ) : <span /> }
                 </span>
                 <span>
                   <span className={styles.number}>{totalFlows}</span>
